@@ -105,6 +105,8 @@ class xSetWacom:
 						result = self.LookUpMouseName(self.LookUpMouseButton(int(result)))
 					commands.append("xsetwacom set '" + interface + "' " + button.Callsign + " \"" + result + "\"\n")
 			else:
+			    if any(device in interface.lower() 
+				    for device in ["stylus", "pen"]):
 				points = GetPressCurve(interface)
 				if points:
 					commands.append("xsetwacom set '" + interface + "' PressureCurve " + str(points[0]) + " " + str(points[1]) + " " + str(points[2]) + " " + str(points[3]) + "\n")
@@ -114,6 +116,10 @@ class xSetWacom:
 		f1 = open(os.path.expanduser("~/.wacom_utility"), 'a')
 		f1.writelines(commands)
 		f1.close()
+
+		# Save commands only
+		with open(os.path.expanduser("~/.wacom_config"), "w") as f:
+		    f.writelines(commands)
 
 
 	def PurgeXSession(self):
