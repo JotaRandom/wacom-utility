@@ -4,11 +4,7 @@
 
 import sys
 import gtk
-import pygtk
-import gobject
 import gtk.glade
-import cairo
-import pango
 import os
 import gc
 from copy import copy
