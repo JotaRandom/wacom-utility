@@ -54,6 +54,65 @@ class XSetWacom:
         else:
             return str(button)
 
+	def SetByTypeAndName(self,device,type,object,name=""):
+		# 0 = ign | 1 = Mouse | 2 = Keybd | 3 = TPCButton (name=on/off)
+		
+		if type == 0:
+			function = "0"
+		elif type == 1:
+			function = "\'" + self.LookUpMouseName(name) + "\'"
+		elif type == 2:
+			function = "\"CORE KEY " + name + "\""
+		elif type == 3:
+			function = "\'TPCButton " + name + "\'"
+		print "xsetwacom set '" + device + "' " + object + " " + function
+		result = os.popen("xsetwacom set '" + device + "' " + object + " " + function).read()
+		
+		
+	def VerifyString(self,string):
+		result = 1
+		if string.count("\'") + string.count("\"") + string.count("\\") + string.count("\t") > 0:
+			result = 0
+		for item in string.split(" "):
+			if len(item) > 1:
+				ver = 0
+				for litem in self.ListModifiers():
+					if item.upper() == litem[0].upper():
+						ver = 1
+				if ver == 0:
+					result = 0
+		return result
+					
+	def SaveToXSession(self, Tablet):
+		# Saves configuration so it runs on startup
+		self.PurgeXSession()
+		commands = []
+		# Generate commands based on current configuration
+		for interface in self.ListInterfaces():
+			if "pad" in interface.lower():
+				for button in Tablet.Buttons:
+					result = os.popen("xsetwacom get '" + interface + "' " + button.Callsign).read()
+					result = result.replace("\n","")
+					if len(result) == 1:
+						result = self.LookUpMouseName(self.LookUpMouseButton(int(result)))
+					commands.append("xsetwacom set '" + interface + "' " + button.Callsign + " \"" + result + "\"\n")
+			else:
+			    if any(device in interface.lower() 
+				    for device in ["stylus", "pen"]):
+				points = GetPressCurve(interface)
+				if points:
+					commands.append("xsetwacom set '" + interface + "' PressureCurve " + str(points[0]) + " " + str(points[1]) + " " + str(points[2]) + " " + str(points[3]) + "\n")
+				result = GetClickForce(interface)
+				if result: commands.append("xsetwacom set '" + interface + "' Threshold " + str(result) + "\n")
+		# Save configuration to .xsession
+		f1 = open(os.path.expanduser("~/.wacom_utility"), 'a')
+		f1.writelines(commands)
+		f1.close()
+
+		# Save commands only
+		with open(os.path.expanduser("~/.wacom_config"), "w") as f:
+		    f.writelines(commands)
+
     def lookUpMouseName(self,name):
         for item in self.listMouseActions():
             if item[1] == name:
